@@ -22,7 +22,7 @@ class CreateAkademiksTable extends Migration
 			$table->integer('ipa');
 			$table->timestamps();
 			$table->softDeletes();
-		});
+		});																								
 	}
 
     /**

@@ -16,10 +16,10 @@ class CreateNilaisTable extends Migration
 			$table->increments('id');
 			$table->integer('user_id');
 			$table->Integer('siswa_id');
-			$table->decimal('akademik');
-			$table->decimal('prestasi');
-			$table->decimal('zona');
-			$table->decimal('sktm');
+			$table->decimal('akademik')->default(0);
+			$table->decimal('prestasi')->default(0);
+			$table->decimal('zona')->default(0);
+			$table->decimal('sktm')->default(0);
 			$table->timestamps();
 			$table->softDeletes();
 		});
