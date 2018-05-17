@@ -12,6 +12,7 @@ use Bantenprov\Nilai\Facades\NilaiFacade;
 use Bantenprov\Nilai\Models\Bantenprov\Nilai\Nilai;
 use Bantenprov\Siswa\Models\Bantenprov\Siswa\Siswa;
 use App\User;
+use Bantenprov\Sekolah\Models\Bantenprov\Sekolah\AdminSekolah;
 
 /* Etc */
 use Validator;
@@ -28,6 +29,7 @@ class NilaiController extends Controller
     protected $siswa;
     protected $nilai;
     protected $user;
+    protected $admin_sekolah;
 
     /**
      * Create a new controller instance.
@@ -36,9 +38,10 @@ class NilaiController extends Controller
      */
     public function __construct(Nilai $nilai, Siswa $siswa, User $user)
     {
-        $this->nilai    = new Nilai;
-        $this->siswa    = new Siswa;
-        $this->user     = new User;
+        $this->nilai         = new Nilai;
+        $this->siswa         = new Siswa;
+        $this->user          = new User;
+        $this->admin_sekolah = new AdminSekolah;
     }
 
     /**
@@ -48,20 +51,47 @@ class NilaiController extends Controller
      */
     public function index(Request $request)
     {
+        $admin_sekolah = $this->admin_sekolah->where('admin_sekolah_id', Auth::user()->id)->first();
+
+        if(is_null($admin_sekolah) && $this->checkRole(['superadministrator']) === false){
+            $response = [];
+            return response()->json($response)
+            ->header('Access-Control-Allow-Origin', '*')
+            ->header('Access-Control-Allow-Methods', 'GET');
+        }
+        
         if (request()->has('sort')) {
             list($sortCol, $sortDir) = explode('|', request()->sort);
 
-            $query = $this->nilai->orderBy($sortCol, $sortDir);
+            if($this->checkRole(['superadministrator'])){
+                $query = $this->nilai->orderBy($sortCol, $sortDir);
+            }else{
+                $query = $this->nilai->where('user_id', $admin_sekolah->admin_sekolah_id)->orderBy($sortCol, $sortDir);
+            }
         } else {
-            $query = $this->nilai->orderBy('id', 'asc');
+            if($this->checkRole(['superadministrator'])){
+                $query = $this->nilai->orderBy('id', 'asc');
+            }else{
+                $query = $this->nilai->where('user_id', $admin_sekolah->admin_sekolah_id)->orderBy('id', 'asc');            
+            }
         }
 
         if ($request->exists('filter')) {
-            $query->where(function($q) use($request) {
-                $value = "%{$request->filter}%";
+            if($this->checkRole(['superadministrator'])){
+                $query->where(function($q) use($request) {
+                    $value = "%{$request->filter}%";
 
-                $q->where('nomor_un', 'like', $value);
-            });
+                    $q->where('sekolah_id', 'like', $value)
+                        ->orWhere('admin_sekolah_id', 'like', $value);
+                });
+            }else{
+                $query->where(function($q) use($request, $admin_sekolah) {
+                    $value = "%{$request->filter}%";
+
+                    $q->where('sekolah_id', $admin_sekolah->sekolah_id)->where('sekolah_id', 'like', $value);
+                });
+            }
+
         }
 
         $perPage    = request()->has('per_page') ? (int) request()->per_page : null;
@@ -107,11 +137,20 @@ class NilaiController extends Controller
     {
         $user_id        = isset(Auth::User()->id) ? Auth::User()->id : null;
         $nilai          = $this->nilai->getAttributes();
-        $siswas         = $this->siswa->getAttributes();
+       // $siswas         = $this->siswa->getAttributes();
         $users          = $this->user->getAttributes();
         $users_special  = $this->user->all();
         $users_standar  = $this->user->findOrFail($user_id);
         $current_user   = Auth::User();
+
+        $admin_sekolah = $this->admin_sekolah->where('admin_sekolah_id', Auth::user()->id)->first();
+
+        if($this->checkRole(['superadministrator'])){
+            $siswas = $this->siswa->all();
+        }else{
+            $sekolah_id = $admin_sekolah->sekolah_id;
+            $siswas     = $this->siswa->where('sekolah_id', $sekolah_id)->get();
+        }
 
         foreach ($siswas as $siswa) {
             array_set($siswa, 'label', $siswa->nomor_un.' - '.$siswa->nama_siswa);
@@ -138,7 +177,7 @@ class NilaiController extends Controller
         array_set($current_user, 'label', $current_user->name);
 
         $response['nilai']          = $nilai;
-        $response['siswas']         = $siswas;
+        $response['siswa']          = $siswas;
         $response['users']          = $users;
         $response['user_special']   = $user_special;
         $response['current_user']   = $current_user;
@@ -339,5 +378,10 @@ class NilaiController extends Controller
         }
 
         return json_encode($response);
+    }
+
+    protected function checkRole($role = array())
+    {
+        return Auth::user()->hasRole($role);
     }
 }
