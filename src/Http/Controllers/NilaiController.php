@@ -11,6 +11,7 @@ use Bantenprov\Nilai\Facades\NilaiFacade;
 /* Models */
 use Bantenprov\Nilai\Models\Bantenprov\Nilai\Nilai;
 use Bantenprov\Siswa\Models\Bantenprov\Siswa\Siswa;
+use Bantenprov\Kegiatan\Models\Bantenprov\Kegiatan\Kegiatan;
 use App\User;
 use Bantenprov\Sekolah\Models\Bantenprov\Sekolah\AdminSekolah;
 
@@ -28,6 +29,7 @@ class NilaiController extends Controller
 {
     protected $siswa;
     protected $nilai;
+    protected $kegiatan;
     protected $user;
     protected $admin_sekolah;
 
@@ -40,6 +42,7 @@ class NilaiController extends Controller
     {
         $this->nilai         = new Nilai;
         $this->siswa         = new Siswa;
+        $this->kegiatan      = new Kegiatan;
         $this->user          = new User;
         $this->admin_sekolah = new AdminSekolah;
     }
@@ -59,7 +62,7 @@ class NilaiController extends Controller
             ->header('Access-Control-Allow-Origin', '*')
             ->header('Access-Control-Allow-Methods', 'GET');
         }
-        
+
         if (request()->has('sort')) {
             list($sortCol, $sortDir) = explode('|', request()->sort);
 
@@ -72,7 +75,7 @@ class NilaiController extends Controller
             if($this->checkRole(['superadministrator'])){
                 $query = $this->nilai->orderBy('id', 'asc');
             }else{
-                $query = $this->nilai->where('user_id', $admin_sekolah->admin_sekolah_id)->orderBy('id', 'asc');            
+                $query = $this->nilai->where('user_id', $admin_sekolah->admin_sekolah_id)->orderBy('id', 'asc');
             }
         }
 
@@ -199,14 +202,15 @@ class NilaiController extends Controller
         $nilai = $this->nilai;
 
         $validator = Validator::make($request->all(), [
-            'nomor_un'  => "required|exists:{$this->siswa->getTable()},nomor_un|unique:{$this->nilai->getTable()},nomor_un,NULL,id,deleted_at,NULL",
-            'bobot'     => 'required|numeric|min:0|max:100',
-            'akademik'  => 'required|numeric|min:0|max:100',
-            'prestasi'  => 'required|numeric|min:0|max:100',
-            'zona'      => 'required|numeric|min:0|max:100',
-            'sktm'     => 'required|numeric|min:0|max:100',
+            'nomor_un'      => "required|exists:{$this->siswa->getTable()},nomor_un|unique:{$this->nilai->getTable()},nomor_un,NULL,id,deleted_at,NULL",
+            'bobot'         => 'required|numeric|min:0|max:100',
+            'akademik'      => 'required|numeric|min:0|max:100',
+            'prestasi'      => 'required|numeric|min:0|max:100',
+            'zona'          => 'required|numeric|min:0|max:100',
+            'sktm'          => 'required|numeric|min:0|max:100',
+            // 'kegiatan_id'   => "required|exists:{$this->kegiatan->getTable()},id",
             // 'total'      => 'required|numeric|min:0|max:100',
-            'user_id'   => "required|exists:{$this->user->getTable()},id",
+            'user_id'       => "required|exists:{$this->user->getTable()},id",
         ]);
 
         if ($validator->fails()) {
@@ -219,6 +223,7 @@ class NilaiController extends Controller
             $nilai->prestasi    = $request->input('prestasi');
             $nilai->zona        = $request->input('zona');
             $nilai->sktm        = $request->input('sktm');
+            $nilai->kegiatan_id = null; // $request->input('kegiatan_id');
             $nilai->total       = null; // $request->input('total');
             $nilai->user_id     = $request->input('user_id');
             $nilai->save();
@@ -327,6 +332,7 @@ class NilaiController extends Controller
             'prestasi'  => 'required|numeric|min:0|max:100',
             'zona'      => 'required|numeric|min:0|max:100',
             'sktm'      => 'required|numeric|min:0|max:100',
+            // 'kegiatan_id'   => "required|exists:{$this->kegiatan->getTable()},id",
             // 'total'     => 'required|numeric|min:0|max:100',
             'user_id'   => "required|exists:{$this->user->getTable()},id",
         ]);
@@ -341,6 +347,7 @@ class NilaiController extends Controller
             $nilai->prestasi    = $request->input('prestasi');
             $nilai->zona        = $request->input('zona');
             $nilai->sktm        = $request->input('sktm');
+            $nilai->kegiatan_id = null; // $request->input('kegiatan_id');
             $nilai->total       = null; // $request->input('total');
             $nilai->user_id     = $request->input('user_id');
             $nilai->save();

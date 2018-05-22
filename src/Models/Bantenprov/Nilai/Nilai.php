@@ -27,6 +27,11 @@ class Nilai extends Model
         'user_id',
     ];
 
+    public function setKegiatanIdAttribute($value)
+    {
+        $this->attributes['kegiatan_id'] = $this->siswa->kegiatan_id;
+    }
+
     public function setTotalAttribute($value)
     {
         $nilai[]    = $this->akademik;
@@ -34,7 +39,7 @@ class Nilai extends Model
         $nilai[]    = $this->zona;
         $nilai[]    = $this->sktm;
 
-        $this->attributes['total'] = array_sum($nilai);
+        return $this->attributes['total'] = array_sum($nilai);
     }
 
     public function siswa()
